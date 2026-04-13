@@ -1,9 +1,8 @@
 import { useEffect, useRef } from 'react';
 
 const stats = [
-  { value: '3+',   label: 'Years of Experience',         sub: 'industry' },
+  { value: '2+',   label: 'Years of Experience',         sub: 'industry' },
   { value: '175+', label: 'Fulfillment Centers',          sub: 'supported' },
-  { value: '90%',  label: 'CI/CD Release Time Reduction', sub: 'automated' },
 ];
 
 export default function About() {
