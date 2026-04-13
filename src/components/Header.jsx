@@ -1,79 +1,194 @@
-import { useState } from 'react';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
-import { Menu } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import ThemeToggle from '@/components/ThemeToggle';
 
 const navLinks = [
-  { href: '#about', label: 'About' },
+  { href: '#about',    label: 'About' },
   { href: '#projects', label: 'Projects' },
-  { href: '#skills', label: 'Skills' },
-  { href: '#contact', label: 'Contact' },
+  { href: '#skills',   label: 'Skills' },
+  { href: '#contact',  label: 'Contact' },
 ];
 
-function NavLinks({ onClick }) {
+export default function Header() {
+  const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 50);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // Lock body scroll when menu is open
+  useEffect(() => {
+    document.body.style.overflow = menuOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [menuOpen]);
+
   return (
     <>
-      {navLinks.map((link) => (
-        <a
-          key={link.href}
-          href={link.href}
-          className="text-muted-foreground hover:text-foreground font-medium transition-colors py-2"
-          onClick={onClick}
-        >
-          {link.label}
-        </a>
-      ))}
-    </>
-  );
-}
+      <header style={{
+        position: 'fixed',
+        top: 0, left: 0, right: 0,
+        zIndex: 50,
+        height: '60px',
+        borderBottom: `1px solid ${scrolled ? 'var(--c-border)' : 'transparent'}`,
+        backgroundColor: scrolled
+          ? 'color-mix(in srgb, var(--c-bg) 88%, transparent)'
+          : 'transparent',
+        backdropFilter: scrolled ? 'blur(14px)' : 'none',
+        transition: 'background-color 0.4s ease, border-color 0.4s ease, backdrop-filter 0.4s ease',
+      }}>
+        <div style={{
+          maxWidth: '1120px',
+          margin: '0 auto',
+          padding: '0 1.5rem',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}>
+          {/* Monogram */}
+          <a
+            href="#"
+            aria-label="Home"
+            style={{
+              fontFamily: 'Syne, sans-serif',
+              fontWeight: 700,
+              fontSize: '1rem',
+              letterSpacing: '0.06em',
+              color: 'var(--c-text)',
+              textDecoration: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <span style={{
+              display: 'inline-block',
+              width: '6px',
+              height: '6px',
+              borderRadius: '50%',
+              background: 'var(--c-amber)',
+            }} />
+            H·T
+          </a>
 
-export default function Header() {
-  const [open, setOpen] = useState(false);
+          {/* Desktop nav */}
+          <nav
+            aria-label="Main navigation"
+            style={{ display: 'flex', alignItems: 'center', gap: '2.25rem' }}
+            className="hidden md:flex"
+          >
+            {navLinks.map((link) => (
+              <a key={link.href} href={link.href} className="nav-link">
+                {link.label}
+              </a>
+            ))}
+            <div style={{ marginLeft: '0.5rem' }}>
+              <ThemeToggle />
+            </div>
+          </nav>
 
-  return (
-    <header className="fixed top-0 left-0 right-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto max-w-6xl flex h-16 items-center justify-between px-4 md:px-6">
-        <a href="#" className="font-bold text-lg tracking-tight">
-          Portfolio
-        </a>
+          {/* Mobile controls */}
+          <div className="flex md:hidden items-center gap-3">
+            <ThemeToggle />
+            <button
+              onClick={() => setMenuOpen(o => !o)}
+              aria-label="Toggle menu"
+              aria-expanded={menuOpen}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '4px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '5px',
+                color: 'var(--c-text)',
+              }}
+            >
+              <span style={{
+                display: 'block',
+                width: '22px',
+                height: '1.5px',
+                background: 'currentColor',
+                transition: 'transform 0.3s, opacity 0.3s',
+                transform: menuOpen ? 'translateY(6.5px) rotate(45deg)' : 'none',
+              }} />
+              <span style={{
+                display: 'block',
+                width: '22px',
+                height: '1.5px',
+                background: 'currentColor',
+                opacity: menuOpen ? 0 : 1,
+                transition: 'opacity 0.3s',
+              }} />
+              <span style={{
+                display: 'block',
+                width: '22px',
+                height: '1.5px',
+                background: 'currentColor',
+                transition: 'transform 0.3s, opacity 0.3s',
+                transform: menuOpen ? 'translateY(-6.5px) rotate(-45deg)' : 'none',
+              }} />
+            </button>
+          </div>
+        </div>
+      </header>
 
-        <nav className="hidden md:flex items-center gap-8">
-          <NavLinks />
-        </nav>
+      {/* Mobile overlay menu */}
+      <div
+        aria-hidden={!menuOpen}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 40,
+          background: 'var(--c-bg)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0.5rem',
+          opacity: menuOpen ? 1 : 0,
+          pointerEvents: menuOpen ? 'auto' : 'none',
+          transition: 'opacity 0.35s ease',
+        }}
+        className="md:hidden"
+      >
+        {navLinks.map((link, i) => (
+          <a
+            key={link.href}
+            href={link.href}
+            onClick={() => setMenuOpen(false)}
+            style={{
+              fontFamily: 'Syne, sans-serif',
+              fontWeight: 700,
+              fontSize: 'clamp(1.8rem, 6vw, 2.5rem)',
+              color: 'var(--c-text)',
+              textDecoration: 'none',
+              letterSpacing: '-0.01em',
+              padding: '0.5rem 2rem',
+              transition: 'color 0.2s',
+              animationDelay: `${i * 0.07}s`,
+            }}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--c-amber)'}
+            onMouseLeave={e => e.currentTarget.style.color = 'var(--c-text)'}
+          >
+            {link.label}
+          </a>
+        ))}
 
-        <div className="flex items-center gap-2">
-          <ThemeToggle className="hidden md:block" />
-
-          <Sheet open={open} onOpenChange={setOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="md:hidden">
-                <Menu className="size-5" />
-                <span className="sr-only">Toggle menu</span>
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-[300px] flex flex-col" showCloseButton={false}>
-              <div className="flex-1 flex flex-col justify-center">
-                <nav className="flex flex-col gap-2">
-                  {navLinks.map((link) => (
-                    <a
-                      key={link.href}
-                      href={link.href}
-                      className="py-3 px-4 text-lg font-medium rounded-lg hover:bg-muted transition-colors"
-                      onClick={() => setOpen(false)}
-                    >
-                      {link.label}
-                    </a>
-                  ))}
-                </nav>
-              </div>
-              <div className="p-4 border-t">
-                <ThemeToggle className="mx-auto" />
-              </div>
-            </SheetContent>
-          </Sheet>
+        <div style={{
+          marginTop: '2rem',
+          fontFamily: 'JetBrains Mono, monospace',
+          fontSize: '0.65rem',
+          letterSpacing: '0.14em',
+          textTransform: 'uppercase',
+          color: 'var(--c-text-ghost)',
+        }}>
+          haniel.thomson@gmail.com
         </div>
       </div>
-    </header>
+    </>
   );
 }

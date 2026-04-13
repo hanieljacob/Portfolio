@@ -1,7 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowUpRight } from 'lucide-react';
 
 const GITHUB_USERNAME = 'hanieljacob';
@@ -19,29 +16,17 @@ const GITHUB_API_HEADERS = {
 const README_WEBSITE_LABEL_REGEX = /(website|live|demo|app|deployed|preview)/i;
 
 const toValidHttpUrl = (value) => {
-  if (typeof value !== 'string') {
-    return null;
-  }
-
-  const cleanedValue = value
-    .trim()
-    .replace(/^[("'`<\[]+/, '')
+  if (typeof value !== 'string') return null;
+  const cleaned = value.trim()
+    .replace(/^[("'`<[]+/, '')
     .replace(/[)"'`>\],.;:!?]+$/, '')
     .replace(/`/g, '');
-  if (!cleanedValue) {
-    return null;
-  }
-
+  if (!cleaned) return null;
   try {
-    const parsedUrl = new URL(cleanedValue);
-    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
-      return null;
-    }
-
-    return parsedUrl.toString();
-  } catch {
-    return null;
-  }
+    const parsed = new URL(cleaned);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
+    return parsed.toString();
+  } catch { return null; }
 };
 
 const isLikelyProjectWebsite = (url) => {
@@ -53,65 +38,37 @@ const isLikelyProjectWebsite = (url) => {
       hostname !== 'img.shields.io' &&
       hostname !== 'shields.io'
     );
-  } catch {
-    return false;
-  }
+  } catch { return false; }
 };
 
 const decodeBase64Utf8 = (value) => {
   try {
-    const normalized = value.replace(/\n/g, '');
-    const binary = atob(normalized);
-    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+    const binary = atob(value.replace(/\n/g, ''));
+    const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
     return new TextDecoder().decode(bytes);
-  } catch {
-    return '';
-  }
+  } catch { return ''; }
 };
 
 const extractWebsiteFromReadme = (markdown) => {
-  if (!markdown) {
-    return null;
-  }
-
-  const markdownLinks = [];
-  const markdownLinkPattern = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/gi;
-  let match = markdownLinkPattern.exec(markdown);
-
+  if (!markdown) return null;
+  const links = [];
+  const pattern = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/gi;
+  let match = pattern.exec(markdown);
   while (match) {
-    const label = match[1];
     const url = toValidHttpUrl(match[2]);
-
-    if (url && isLikelyProjectWebsite(url)) {
-      markdownLinks.push({ label, url });
-    }
-
-    match = markdownLinkPattern.exec(markdown);
+    if (url && isLikelyProjectWebsite(url)) links.push({ label: match[1], url });
+    match = pattern.exec(markdown);
   }
-
-  const labeledWebsiteLink = markdownLinks.find((link) =>
-    README_WEBSITE_LABEL_REGEX.test(link.label),
-  );
-
-  if (labeledWebsiteLink) {
-    return labeledWebsiteLink.url;
-  }
-
-  if (markdownLinks.length > 0) {
-    return markdownLinks[0].url;
-  }
-
-  const bareUrlPattern = /https?:\/\/[^\s)\]>]+/gi;
-  let urlMatch = bareUrlPattern.exec(markdown);
-
+  const labeled = links.find(l => README_WEBSITE_LABEL_REGEX.test(l.label));
+  if (labeled) return labeled.url;
+  if (links.length > 0) return links[0].url;
+  const barePattern = /https?:\/\/[^\s)\]>]+/gi;
+  let urlMatch = barePattern.exec(markdown);
   while (urlMatch) {
     const url = toValidHttpUrl(urlMatch[0]);
-    if (url && isLikelyProjectWebsite(url)) {
-      return url;
-    }
-    urlMatch = bareUrlPattern.exec(markdown);
+    if (url && isLikelyProjectWebsite(url)) return url;
+    urlMatch = barePattern.exec(markdown);
   }
-
   return null;
 };
 
@@ -119,96 +76,261 @@ const fetchWebsiteFromReadme = async (repoName, signal) => {
   try {
     const response = await fetch(
       `https://api.github.com/repos/${GITHUB_USERNAME}/${repoName}/readme`,
-      {
-        signal,
-        headers: GITHUB_API_HEADERS,
-      },
+      { signal, headers: GITHUB_API_HEADERS },
     );
-
-    if (!response.ok) {
-      return null;
-    }
-
+    if (!response.ok) return null;
     const readme = await response.json();
-    if (!readme || typeof readme.content !== 'string') {
-      return null;
-    }
-
-    const markdown = decodeBase64Utf8(readme.content);
-    return extractWebsiteFromReadme(markdown);
-  } catch {
-    return null;
-  }
+    if (!readme || typeof readme.content !== 'string') return null;
+    return extractWebsiteFromReadme(decodeBase64Utf8(readme.content));
+  } catch { return null; }
 };
 
 const buildTags = (repo) => {
   const tags = new Set();
-
-  if (Array.isArray(repo.topics)) {
-    repo.topics.slice(0, 5).forEach((topic) => tags.add(topic));
-  }
-
-  if (repo.language) {
-    tags.add(repo.language);
-  }
-
-  if (repo.stargazers_count > 0) {
-    tags.add(`${repo.stargazers_count} stars`);
-  }
-
+  if (Array.isArray(repo.topics)) repo.topics.slice(0, 4).forEach(t => tags.add(t));
+  if (repo.language) tags.add(repo.language);
   return Array.from(tags);
 };
 
 const normalizeRepos = (repos) =>
   repos
-    .filter((repo) => !repo.fork && !repo.archived && !EXCLUDED_REPOS.has(repo.name))
+    .filter(r => !r.fork && !r.archived && !EXCLUDED_REPOS.has(r.name))
     .sort((a, b) => {
-      const aFeatured = FEATURED_REPOS.has(a.name);
-      const bFeatured = FEATURED_REPOS.has(b.name);
-
-      if (aFeatured !== bFeatured) {
-        return aFeatured ? -1 : 1;
-      }
-
+      const af = FEATURED_REPOS.has(a.name), bf = FEATURED_REPOS.has(b.name);
+      if (af !== bf) return af ? -1 : 1;
       return new Date(b.pushed_at) - new Date(a.pushed_at);
     })
     .slice(0, MAX_PROJECTS)
-    .map((repo) => ({
-      title: repo.name,
-      repoName: repo.name,
-      description: repo.description || 'No description provided.',
-      tags: buildTags(repo),
-      link: repo.html_url,
-      website: toValidHttpUrl(repo.homepage),
-      language: repo.language || 'Other',
-      featured: FEATURED_REPOS.has(repo.name),
+    .map(r => ({
+      title: r.name,
+      repoName: r.name,
+      description: r.description || 'No description provided.',
+      tags: buildTags(r),
+      link: r.html_url,
+      website: toValidHttpUrl(r.homepage),
+      language: r.language || 'Other',
+      featured: FEATURED_REPOS.has(r.name),
     }));
+
+function ProjectCard({ project, index }) {
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setTimeout(() => {
+            entry.target.style.opacity = '1';
+            entry.target.style.transform = 'translateY(0)';
+          }, index * 60);
+          observer.unobserve(entry.target);
+        }
+      },
+      { threshold: 0.1 }
+    );
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, [index]);
+
+  return (
+    <div
+      ref={ref}
+      className="project-card"
+      style={{
+        opacity: 0,
+        transform: 'translateY(16px)',
+        transition: 'opacity 0.55s ease, transform 0.55s ease',
+        padding: '1.75rem',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '1rem',
+        height: '100%',
+      }}
+    >
+      {/* Header row */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
+        <div style={{ flex: 1 }}>
+          {/* Index */}
+          <span
+            className="label"
+            style={{ color: 'var(--c-text-ghost)', display: 'block', marginBottom: '0.5rem' }}
+          >
+            {String(index + 1).padStart(2, '0')}{project.featured ? ' · featured' : ''}
+          </span>
+          <h3
+            style={{
+              fontFamily: 'Syne, sans-serif',
+              fontWeight: 700,
+              fontSize: '1.05rem',
+              color: 'var(--c-text)',
+              margin: 0,
+              letterSpacing: '-0.01em',
+            }}
+          >
+            {project.title.replace(/-/g, ' ')}
+          </h3>
+        </div>
+        {/* Language dot */}
+        <div
+          title={project.language}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '5px',
+            flexShrink: 0,
+          }}
+        >
+          <span
+            style={{
+              width: '7px',
+              height: '7px',
+              borderRadius: '50%',
+              background: 'var(--c-amber)',
+              opacity: project.featured ? 1 : 0.45,
+              display: 'inline-block',
+              flexShrink: 0,
+            }}
+          />
+          <span
+            className="label"
+            style={{ color: 'var(--c-text-ghost)', fontSize: '0.62rem' }}
+          >
+            {project.language}
+          </span>
+        </div>
+      </div>
+
+      {/* Description */}
+      <p
+        style={{
+          fontFamily: 'Source Serif 4, serif',
+          fontSize: '0.9rem',
+          color: 'var(--c-text-dim)',
+          lineHeight: 1.7,
+          margin: 0,
+          flex: 1,
+        }}
+      >
+        {project.description}
+      </p>
+
+      {/* Tags */}
+      {project.tags.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+          {project.tags.map(tag => (
+            <span
+              key={tag}
+              style={{
+                fontFamily: 'JetBrains Mono, monospace',
+                fontSize: '0.6rem',
+                letterSpacing: '0.08em',
+                padding: '0.2rem 0.55rem',
+                border: '1px solid var(--c-border)',
+                color: 'var(--c-text-ghost)',
+                textTransform: 'lowercase',
+              }}
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Links */}
+      <div
+        style={{
+          display: 'flex',
+          gap: '1rem',
+          borderTop: '1px solid var(--c-border)',
+          paddingTop: '1rem',
+        }}
+      >
+        {project.website && (
+          <a
+            href={project.website}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              fontFamily: 'Syne, sans-serif',
+              fontWeight: 600,
+              fontSize: '0.68rem',
+              letterSpacing: '0.12em',
+              textTransform: 'uppercase',
+              color: 'var(--c-amber)',
+              textDecoration: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '3px',
+              transition: 'opacity 0.2s',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.opacity = '0.7')}
+            onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+          >
+            Live Demo
+            <ArrowUpRight style={{ width: '12px', height: '12px' }} />
+          </a>
+        )}
+        <a
+          href={project.link}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            fontFamily: 'Syne, sans-serif',
+            fontWeight: 600,
+            fontSize: '0.68rem',
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            color: 'var(--c-text-dim)',
+            textDecoration: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '3px',
+            transition: 'color 0.2s',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.color = 'var(--c-text)')}
+          onMouseLeave={e => (e.currentTarget.style.color = 'var(--c-text-dim)')}
+        >
+          GitHub
+          <ArrowUpRight style={{ width: '12px', height: '12px' }} />
+        </a>
+      </div>
+    </div>
+  );
+}
 
 export default function Projects() {
   const [projects, setProjects] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [languageFilter, setLanguageFilter] = useState('All');
+  const headerRef = useRef(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          entry.target.querySelectorAll('[data-reveal]').forEach((el, i) => {
+            el.style.transitionDelay = `${i * 0.1}s`;
+            el.classList.add('visible');
+          });
+          observer.unobserve(entry.target);
+        }
+      },
+      { threshold: 0.15 }
+    );
+    if (headerRef.current) observer.observe(headerRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   const languages = useMemo(() => {
-    const uniqueLanguages = new Set();
-
-    projects.forEach((project) => {
-      if (project.language) {
-        uniqueLanguages.add(project.language);
-      }
-    });
-
-    return ['All', ...Array.from(uniqueLanguages).sort()];
+    const unique = new Set(projects.map(p => p.language).filter(Boolean));
+    return ['All', ...Array.from(unique).sort()];
   }, [projects]);
 
-  const filteredProjects = useMemo(() => {
-    if (languageFilter === 'All') {
-      return projects;
-    }
-
-    return projects.filter((project) => project.language === languageFilter);
-  }, [languageFilter, projects]);
+  const filteredProjects = useMemo(
+    () => languageFilter === 'All' ? projects : projects.filter(p => p.language === languageFilter),
+    [languageFilter, projects],
+  );
 
   useEffect(() => {
     const controller = new AbortController();
@@ -220,142 +342,156 @@ export default function Projects() {
 
         const response = await fetch(
           `https://api.github.com/users/${GITHUB_USERNAME}/repos?per_page=100&sort=updated`,
-          {
-            signal: controller.signal,
-            headers: GITHUB_API_HEADERS,
-          },
+          { signal: controller.signal, headers: GITHUB_API_HEADERS },
         );
-
-        if (!response.ok) {
-          throw new Error(`GitHub API error: ${response.status}`);
-        }
-
+        if (!response.ok) throw new Error(`GitHub API error: ${response.status}`);
         const repos = await response.json();
+        if (!Array.isArray(repos)) throw new Error('Unexpected response from GitHub.');
 
-        if (!Array.isArray(repos)) {
-          throw new Error('Unexpected response from GitHub.');
-        }
-
-        const normalizedProjects = normalizeRepos(repos);
-        const projectsWithWebsites = await Promise.all(
-          normalizedProjects.map(async (project) => {
-            if (project.website) {
-              return project;
-            }
-
-            const website = await fetchWebsiteFromReadme(project.repoName, controller.signal);
-            return {
-              ...project,
-              website,
-            };
+        const normalized = normalizeRepos(repos);
+        const withWebsites = await Promise.all(
+          normalized.map(async p => {
+            if (p.website) return p;
+            const website = await fetchWebsiteFromReadme(p.repoName, controller.signal);
+            return { ...p, website };
           }),
         );
 
-        if (!controller.signal.aborted) {
-          setProjects(projectsWithWebsites);
-        }
+        if (!controller.signal.aborted) setProjects(withWebsites);
       } catch (err) {
-        if (!controller.signal.aborted) {
-          setError(err);
-        }
+        if (!controller.signal.aborted) setError(err);
       } finally {
-        if (!controller.signal.aborted) {
-          setIsLoading(false);
-        }
+        if (!controller.signal.aborted) setIsLoading(false);
       }
     };
 
     loadProjects();
-
     return () => controller.abort();
   }, []);
 
   return (
-    <section id="projects" className="py-24 md:py-32 bg-white dark:bg-gray-900">
-      <div className="container mx-auto max-w-5xl px-4 md:px-6">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Selected Work</h2>
-          <div className="h-1 w-14 bg-primary rounded-full mx-auto mb-4" />
-        </div>
-        {isLoading ? (
-          <p className="text-center text-muted-foreground">Loading projects...</p>
-        ) : error ? (
-          <div className="text-center space-y-4">
-            <p className="text-muted-foreground">
-              Couldn&apos;t load projects right now.
-            </p>
-            <Button asChild>
-              <a
-                href={`https://github.com/${GITHUB_USERNAME}`}
-                target="_blank"
-                rel="noopener noreferrer"
+    <section
+      id="projects"
+      style={{
+        padding: 'clamp(5rem, 10vw, 8rem) 0',
+        background: 'var(--c-bg)',
+        borderBottom: '1px solid var(--c-border)',
+      }}
+    >
+      <div style={{ maxWidth: '1120px', margin: '0 auto', padding: '0 1.5rem' }}>
+        {/* Header */}
+        <div ref={headerRef} style={{ marginBottom: '3.5rem' }}>
+          <div data-reveal className="section-enter">
+            <span className="label">02 — Work</span>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '1rem', marginTop: '0.75rem' }}>
+              <h2
+                style={{
+                  fontFamily: 'Syne, sans-serif',
+                  fontWeight: 700,
+                  fontSize: 'clamp(1.8rem, 4vw, 2.75rem)',
+                  color: 'var(--c-text)',
+                  margin: 0,
+                  letterSpacing: '-0.02em',
+                }}
               >
-                View GitHub Profile
-                <ArrowUpRight className="size-4 ml-1" />
-              </a>
-            </Button>
+                Selected Projects
+              </h2>
+              <div style={{ flex: 1, height: '1px', background: 'var(--c-border)', maxWidth: '120px' }} />
+            </div>
+          </div>
+        </div>
+
+        {isLoading ? (
+          <div style={{ textAlign: 'center', padding: '4rem 0' }}>
+            <span
+              className="label"
+              style={{ color: 'var(--c-text-ghost)', display: 'block', marginBottom: '1rem' }}
+            >
+              Loading
+            </span>
+            <div
+              style={{
+                width: '40px',
+                height: '1px',
+                background: 'var(--c-amber)',
+                margin: '0 auto',
+                animation: 'fadeIn 0.8s ease infinite alternate',
+              }}
+            />
+          </div>
+        ) : error ? (
+          <div style={{ textAlign: 'center', padding: '4rem 0' }}>
+            <p
+              style={{
+                fontFamily: 'Source Serif 4, serif',
+                color: 'var(--c-text-dim)',
+                marginBottom: '1.5rem',
+              }}
+            >
+              Couldn't load projects right now.
+            </p>
+            <a
+              href={`https://github.com/${GITHUB_USERNAME}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                fontFamily: 'Syne, sans-serif',
+                fontWeight: 600,
+                fontSize: '0.72rem',
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+                padding: '0.7rem 1.5rem',
+                border: '1px solid var(--c-amber-20)',
+                color: 'var(--c-amber)',
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              View GitHub Profile
+              <ArrowUpRight style={{ width: '13px', height: '13px' }} />
+            </a>
           </div>
         ) : (
           <>
-            <div className="flex flex-wrap items-center justify-center gap-2 mb-8">
-              {languages.map((language) => (
-                <Button
-                  key={language}
-                  size="sm"
-                  variant={languageFilter === language ? 'default' : 'secondary'}
-                  onClick={() => setLanguageFilter(language)}
-                >
-                  {language}
-                </Button>
-              ))}
-            </div>
+            {/* Language filter */}
+            {languages.length > 1 && (
+              <div
+                style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '0.5rem',
+                  marginBottom: '2.5rem',
+                }}
+              >
+                {languages.map(lang => (
+                  <button
+                    key={lang}
+                    className={`filter-pill${languageFilter === lang ? ' active' : ''}`}
+                    onClick={() => setLanguageFilter(lang)}
+                  >
+                    {lang}
+                  </button>
+                ))}
+              </div>
+            )}
+
             {filteredProjects.length === 0 ? (
-              <p className="text-center text-muted-foreground">
-                No projects match that filter yet.
+              <p style={{ fontFamily: 'Source Serif 4, serif', color: 'var(--c-text-dim)', textAlign: 'center' }}>
+                No projects match that filter.
               </p>
             ) : (
-              <div className="grid sm:grid-cols-2 gap-6 max-w-4xl mx-auto">
-                {filteredProjects.map((project) => (
-                  <Card
-                    key={project.title}
-                    className={`group overflow-hidden transition-all hover:shadow-lg hover:border-primary/50 ${
-                      project.featured ? 'border-primary/20' : ''
-                    }`}
-                  >
-                    <CardHeader>
-                      <h3 className="text-xl font-semibold group-hover:text-primary transition-colors">
-                        {project.title}
-                      </h3>
-                      <p className="text-muted-foreground text-sm leading-relaxed">
-                        {project.description}
-                      </p>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                      <div className="flex flex-wrap gap-2">
-                        {project.tags.map((tag) => (
-                          <Badge key={tag} variant="secondary">
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
-                    </CardContent>
-                    <CardFooter className="pt-0 flex items-center flex-wrap gap-1">
-                      {project.website ? (
-                        <Button variant="ghost" size="sm" asChild className="group/btn">
-                          <a href={project.website} target="_blank" rel="noopener noreferrer">
-                            Visit Website
-                            <ArrowUpRight className="size-4 ml-1 opacity-0 -translate-y-0.5 translate-x-0.5 group-hover/btn:opacity-100 group-hover/btn:translate-y-0 group-hover/btn:translate-x-0 transition-all" />
-                          </a>
-                        </Button>
-                      ) : null}
-                      <Button variant="ghost" size="sm" asChild className="group/btn">
-                        <a href={project.link} target="_blank" rel="noopener noreferrer">
-                          View Project
-                          <ArrowUpRight className="size-4 ml-1 opacity-0 -translate-y-0.5 translate-x-0.5 group-hover/btn:opacity-100 group-hover/btn:translate-y-0 group-hover/btn:translate-x-0 transition-all" />
-                        </a>
-                      </Button>
-                    </CardFooter>
-                  </Card>
+              <div
+                style={{
+                  display: 'grid',
+                  gap: '1.5px',
+                  gridTemplateColumns: '1fr',
+                }}
+                className="sm:grid-cols-2 lg:grid-cols-3"
+              >
+                {filteredProjects.map((project, i) => (
+                  <ProjectCard key={project.title} project={project} index={i} />
                 ))}
               </div>
             )}
