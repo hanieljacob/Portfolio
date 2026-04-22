@@ -13,77 +13,6 @@ const GITHUB_API_HEADERS = {
   Accept: 'application/vnd.github+json',
   'X-GitHub-Api-Version': '2022-11-28',
 };
-const README_WEBSITE_LABEL_REGEX = /(website|live|demo|app|deployed|preview)/i;
-
-const toValidHttpUrl = (value) => {
-  if (typeof value !== 'string') return null;
-  const cleaned = value.trim()
-    .replace(/^[("'`<[]+/, '')
-    .replace(/[)"'`>\],.;:!?]+$/, '')
-    .replace(/`/g, '');
-  if (!cleaned) return null;
-  try {
-    const parsed = new URL(cleaned);
-    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
-    return parsed.toString();
-  } catch { return null; }
-};
-
-const isLikelyProjectWebsite = (url) => {
-  try {
-    const { hostname } = new URL(url);
-    return (
-      !hostname.endsWith('github.com') &&
-      hostname !== 'raw.githubusercontent.com' &&
-      hostname !== 'img.shields.io' &&
-      hostname !== 'shields.io'
-    );
-  } catch { return false; }
-};
-
-const decodeBase64Utf8 = (value) => {
-  try {
-    const binary = atob(value.replace(/\n/g, ''));
-    const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
-    return new TextDecoder().decode(bytes);
-  } catch { return ''; }
-};
-
-const extractWebsiteFromReadme = (markdown) => {
-  if (!markdown) return null;
-  const links = [];
-  const pattern = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/gi;
-  let match = pattern.exec(markdown);
-  while (match) {
-    const url = toValidHttpUrl(match[2]);
-    if (url && isLikelyProjectWebsite(url)) links.push({ label: match[1], url });
-    match = pattern.exec(markdown);
-  }
-  const labeled = links.find(l => README_WEBSITE_LABEL_REGEX.test(l.label));
-  if (labeled) return labeled.url;
-  if (links.length > 0) return links[0].url;
-  const barePattern = /https?:\/\/[^\s)\]>]+/gi;
-  let urlMatch = barePattern.exec(markdown);
-  while (urlMatch) {
-    const url = toValidHttpUrl(urlMatch[0]);
-    if (url && isLikelyProjectWebsite(url)) return url;
-    urlMatch = barePattern.exec(markdown);
-  }
-  return null;
-};
-
-const fetchWebsiteFromReadme = async (repoName, signal) => {
-  try {
-    const response = await fetch(
-      `https://api.github.com/repos/${GITHUB_USERNAME}/${repoName}/readme`,
-      { signal, headers: GITHUB_API_HEADERS },
-    );
-    if (!response.ok) return null;
-    const readme = await response.json();
-    if (!readme || typeof readme.content !== 'string') return null;
-    return extractWebsiteFromReadme(decodeBase64Utf8(readme.content));
-  } catch { return null; }
-};
 
 const buildTags = (repo) => {
   const tags = new Set();
@@ -104,10 +33,9 @@ const normalizeRepos = (repos) =>
     .map(r => ({
       title: r.name,
       repoName: r.name,
-      description: r.description || 'No description provided.',
+      description: r.description || '',
       tags: buildTags(r),
       link: r.html_url,
-      website: toValidHttpUrl(r.homepage),
       language: r.language || 'Other',
       featured: FEATURED_REPOS.has(r.name),
     }));
@@ -245,31 +173,6 @@ function ProjectCard({ project, index }) {
           paddingTop: '1rem',
         }}
       >
-        {project.website && (
-          <a
-            href={project.website}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              fontFamily: 'Syne, sans-serif',
-              fontWeight: 600,
-              fontSize: '0.68rem',
-              letterSpacing: '0.12em',
-              textTransform: 'uppercase',
-              color: 'var(--c-amber)',
-              textDecoration: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '3px',
-              transition: 'opacity 0.2s',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.opacity = '0.7')}
-            onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-          >
-            Live Demo
-            <ArrowUpRight style={{ width: '12px', height: '12px' }} />
-          </a>
-        )}
         <a
           href={project.link}
           target="_blank"
@@ -349,15 +252,7 @@ export default function Projects() {
         if (!Array.isArray(repos)) throw new Error('Unexpected response from GitHub.');
 
         const normalized = normalizeRepos(repos);
-        const withWebsites = await Promise.all(
-          normalized.map(async p => {
-            if (p.website) return p;
-            const website = await fetchWebsiteFromReadme(p.repoName, controller.signal);
-            return { ...p, website };
-          }),
-        );
-
-        if (!controller.signal.aborted) setProjects(withWebsites);
+        if (!controller.signal.aborted) setProjects(normalized);
       } catch (err) {
         if (!controller.signal.aborted) setError(err);
       } finally {
