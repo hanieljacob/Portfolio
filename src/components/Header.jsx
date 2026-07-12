@@ -74,9 +74,11 @@ export default function Header() {
           </a>
 
           {/* Desktop nav */}
+          {/* No inline `display` here: it would override the `hidden` utility and
+              leave the desktop links showing next to the hamburger on mobile. */}
           <nav
             aria-label="Main navigation"
-            style={{ display: 'flex', alignItems: 'center', gap: '2.25rem' }}
+            style={{ alignItems: 'center', gap: '2.25rem' }}
             className="hidden md:flex"
           >
             {navLinks.map((link) => (

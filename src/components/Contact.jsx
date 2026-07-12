@@ -60,7 +60,7 @@ export default function Contact() {
       <div style={{ maxWidth: '1120px', margin: '0 auto', padding: '0 1.5rem' }}>
         {/* Section header */}
         <div data-reveal className="section-enter" style={{ marginBottom: '3.5rem' }}>
-          <span className="label">04 — Contact</span>
+          <span className="label">04 / Contact</span>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '1rem', marginTop: '0.75rem' }}>
             <h2
               style={{
@@ -81,11 +81,10 @@ export default function Contact() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '1fr',
             gap: '3rem',
             alignItems: 'start',
           }}
-          className="lg:grid-cols-[400px_1fr]"
+          className="grid-contact"
         >
           {/* Copy */}
           <div data-reveal className="section-enter">
@@ -117,11 +116,10 @@ export default function Contact() {
           {/* Links grid */}
           <div
             data-reveal
-            className="section-enter sm:grid-cols-2"
+            className="section-enter grid-contact-links"
             style={{
               display: 'grid',
               gap: '1px',
-              gridTemplateColumns: '1fr',
               background: 'var(--c-border)',
               border: '1px solid var(--c-border)',
             }}

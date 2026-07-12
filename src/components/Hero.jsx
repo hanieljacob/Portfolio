@@ -2,23 +2,95 @@ import { useEffect, useRef } from 'react';
 
 const heroImage = new URL('/hero-photo.png', import.meta.url).href;
 
-export default function Hero() {
-  const containerRef = useRef(null);
+const NAME_TOP = 'HANIEL';
+const NAME_BOTTOM = 'THOMSON';
+
+function useMagnetic(strength = 0.35) {
+  const ref = useRef(null);
 
   useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (!window.matchMedia('(hover: hover)').matches) return;
+
+    const onMove = e => {
+      const rect = el.getBoundingClientRect();
+      const x = e.clientX - (rect.left + rect.width / 2);
+      const y = e.clientY - (rect.top + rect.height / 2);
+      el.style.transform = `translate(${x * strength}px, ${y * strength}px)`;
+    };
+    const onLeave = () => { el.style.transform = 'translate(0, 0)'; };
+
+    el.addEventListener('mousemove', onMove);
+    el.addEventListener('mouseleave', onLeave);
+    return () => {
+      el.removeEventListener('mousemove', onMove);
+      el.removeEventListener('mouseleave', onLeave);
+    };
+  }, [strength]);
+
+  return ref;
+}
+
+export default function Hero({ ready = true }) {
+  const containerRef = useRef(null);
+  const sectionRef = useRef(null);
+  const projectsBtnRef = useMagnetic();
+  const contactBtnRef = useMagnetic();
+
+  // Staggered entrance, held until the preloader hands off.
+  // Applied synchronously rather than inside rAF: rAF is paused in background
+  // tabs, which would leave the hero stuck at opacity 0 until the tab is focused.
+  useEffect(() => {
+    if (!ready) return;
     const el = containerRef.current;
     if (!el) return;
-    // Trigger staggered entrance
-    requestAnimationFrame(() => {
-      el.querySelectorAll('[data-animate]').forEach((node, i) => {
-        node.style.animationDelay = `${i * 0.1 + 0.1}s`;
-        node.classList.add('animate-fade-up');
-      });
+
+    el.querySelectorAll('[data-animate]').forEach((node, i) => {
+      node.style.animationDelay = `${i * 0.1 + 0.15}s`;
+      node.classList.add('animate-fade-up');
     });
+    el.querySelectorAll('.hero-letter').forEach((node, i) => {
+      node.style.animationDelay = `${i * 0.035 + 0.25}s`;
+      node.classList.add('hero-letter-in');
+    });
+  }, [ready]);
+
+  // Pointer parallax drives --px / --py, consumed by the glow and photo
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    let frame = null;
+    let px = 0;
+    let py = 0;
+
+    const apply = () => {
+      frame = null;
+      el.style.setProperty('--px', px.toFixed(3));
+      el.style.setProperty('--py', py.toFixed(3));
+    };
+
+    const onMove = e => {
+      const rect = el.getBoundingClientRect();
+      px = (e.clientX - rect.left) / rect.width - 0.5;
+      py = (e.clientY - rect.top) / rect.height - 0.5;
+      if (frame === null) frame = requestAnimationFrame(apply);
+    };
+
+    el.addEventListener('mousemove', onMove);
+    return () => {
+      el.removeEventListener('mousemove', onMove);
+      if (frame !== null) cancelAnimationFrame(frame);
+    };
   }, []);
 
   return (
     <section
+      ref={sectionRef}
+      className="hero"
       style={{
         minHeight: '100dvh',
         background: 'var(--c-bg)',
@@ -32,6 +104,7 @@ export default function Hero() {
       {/* Subtle dot-grid background */}
       <div
         aria-hidden="true"
+        className="hero-grid"
         style={{
           position: 'absolute',
           inset: 0,
@@ -44,20 +117,9 @@ export default function Hero() {
         }}
       />
 
-      {/* Amber glow */}
-      <div
-        aria-hidden="true"
-        style={{
-          position: 'absolute',
-          top: '-10%',
-          right: '-5%',
-          width: '50vw',
-          height: '50vw',
-          background:
-            'radial-gradient(circle, var(--c-amber-10) 0%, transparent 70%)',
-          pointerEvents: 'none',
-        }}
-      />
+      {/* Drifting amber glows */}
+      <div aria-hidden="true" className="hero-glow hero-glow-a" />
+      <div aria-hidden="true" className="hero-glow hero-glow-b" />
 
       <div
         ref={containerRef}
@@ -71,52 +133,46 @@ export default function Hero() {
           position: 'relative',
           zIndex: 1,
           display: 'grid',
-          gridTemplateColumns: '1fr',
           gap: '3rem',
           alignItems: 'center',
         }}
-        className="lg:grid-cols-[1fr_420px]"
+        className="grid-hero"
       >
-        {/* ── Text ─────────────────────────────────────── */}
+        {/* Text */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
           {/* Label */}
-          <div
-            data-animate
-            style={{ opacity: 0, marginBottom: '1.75rem' }}
-          >
-            <span className="label">Software Engineer · San Francisco</span>
+          <div data-animate style={{ opacity: 0, marginBottom: '1.75rem' }}>
+            <span className="label hero-label">
+              <span className="hero-label-pulse" aria-hidden="true" />
+              Software Engineer · AI Agents &amp; LLM Systems
+            </span>
           </div>
 
           {/* Name */}
           <h1
-            data-animate
+            className="hero-name"
             style={{
-              opacity: 0,
               fontFamily: 'Syne, sans-serif',
               fontWeight: 800,
-              fontSize: 'clamp(3.2rem, 7.5vw, 6.5rem)',
+              fontSize: 'clamp(2.6rem, 5.6vw, 5rem)',
               lineHeight: 0.92,
               margin: 0,
               letterSpacing: '-0.02em',
             }}
           >
-            <span
-              style={{
-                display: 'block',
-                color: 'var(--c-text)',
-              }}
-            >
-              HANIEL
+            <span className="hero-name-line">
+              {NAME_TOP.split('').map((char, i) => (
+                <span className="hero-letter" key={`t-${i}`}>
+                  {char}
+                </span>
+              ))}
             </span>
-            <span
-              style={{
-                display: 'block',
-                color: 'transparent',
-                WebkitTextStroke: '2px var(--c-amber)',
-                textStroke: '2px var(--c-amber)',
-              }}
-            >
-              THOMSON
+            <span className="hero-name-line hero-name-outline">
+              {NAME_BOTTOM.split('').map((char, i) => (
+                <span className="hero-letter" key={`b-${i}`}>
+                  {char}
+                </span>
+              ))}
             </span>
           </h1>
 
@@ -146,8 +202,8 @@ export default function Hero() {
               margin: '0 0 2.5rem',
             }}
           >
-            Building real-time systems at the intersection of computer vision,
-            machine learning, and full-stack engineering. Previously at{' '}
+            Building AI agents and LLM-powered systems, backed by a foundation in
+            real-time machine learning and full-stack engineering. Previously at{' '}
             <span style={{ color: 'var(--c-text)', fontStyle: 'italic' }}>
               Amazon Robotics
             </span>
@@ -164,59 +220,19 @@ export default function Hero() {
               gap: '0.75rem',
             }}
           >
-            <a
-              href="#projects"
-              style={{
-                fontFamily: 'Syne, sans-serif',
-                fontWeight: 600,
-                fontSize: '0.72rem',
-                letterSpacing: '0.14em',
-                textTransform: 'uppercase',
-                padding: '0.75rem 1.85rem',
-                background: 'var(--c-amber)',
-                color: 'var(--c-bg)',
-                textDecoration: 'none',
-                transition: 'opacity 0.2s',
-                display: 'inline-block',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
-              onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-            >
-              View Projects
+            <a ref={projectsBtnRef} href="#projects" className="btn btn-primary">
+              <span>View Projects</span>
             </a>
-            <a
-              href="#contact"
-              style={{
-                fontFamily: 'Syne, sans-serif',
-                fontWeight: 600,
-                fontSize: '0.72rem',
-                letterSpacing: '0.14em',
-                textTransform: 'uppercase',
-                padding: '0.75rem 1.85rem',
-                background: 'transparent',
-                color: 'var(--c-text)',
-                textDecoration: 'none',
-                border: '1px solid var(--c-border-md)',
-                transition: 'border-color 0.2s, color 0.2s',
-                display: 'inline-block',
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.borderColor = 'var(--c-amber-20)';
-                e.currentTarget.style.color = 'var(--c-amber)';
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.borderColor = 'var(--c-border-md)';
-                e.currentTarget.style.color = 'var(--c-text)';
-              }}
-            >
-              Get in Touch
+            <a ref={contactBtnRef} href="#contact" className="btn btn-ghost">
+              <span>Get in Touch</span>
             </a>
           </div>
         </div>
 
-        {/* ── Photo ────────────────────────────────────── */}
+        {/* Photo */}
         <div
           data-animate
+          className="order-first lg:order-last hero-photo-wrap"
           style={{
             opacity: 0,
             position: 'relative',
@@ -224,11 +240,11 @@ export default function Hero() {
             width: '100%',
             maxWidth: '380px',
           }}
-          className="order-first lg:order-last"
         >
           {/* Corner accents */}
           <div
             aria-hidden="true"
+            className="hero-corner hero-corner-tr"
             style={{
               position: 'absolute',
               top: '-14px',
@@ -242,6 +258,7 @@ export default function Hero() {
           />
           <div
             aria-hidden="true"
+            className="hero-corner hero-corner-bl"
             style={{
               position: 'absolute',
               bottom: '-14px',
@@ -255,13 +272,7 @@ export default function Hero() {
           />
 
           {/* Index label */}
-          <div
-            style={{
-              position: 'absolute',
-              top: '-28px',
-              left: 0,
-            }}
-          >
+          <div style={{ position: 'absolute', top: '-28px', left: 0 }}>
             <span
               className="label"
               style={{ color: 'var(--c-text-ghost)', fontSize: '0.6rem' }}
@@ -270,25 +281,20 @@ export default function Hero() {
             </span>
           </div>
 
-          <div
-            style={{
-              aspectRatio: '4/5',
-              overflow: 'hidden',
-              border: '1px solid var(--c-border)',
-            }}
-          >
+          <div className="hero-photo-frame">
             <img
               src={heroImage}
               alt="Haniel Thomson"
+              className="hero-photo"
               style={{
                 width: '100%',
                 height: '100%',
                 objectFit: 'cover',
                 objectPosition: 'center 35%',
-                filter: 'grayscale(15%) contrast(1.05)',
                 display: 'block',
               }}
             />
+            <div className="hero-photo-sheen" aria-hidden="true" />
           </div>
         </div>
       </div>

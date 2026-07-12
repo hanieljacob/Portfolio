@@ -1,12 +1,42 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const stats = [
-  { value: '2+',   label: 'Years of Experience',         sub: 'industry' },
-  { value: '175+', label: 'Fulfillment Centers',          sub: 'supported' },
+  { value: 2,   suffix: '+', label: 'Years of Experience', sub: 'industry' },
+  { value: 175, suffix: '+', label: 'Fulfillment Centers',  sub: 'supported' },
 ];
+
+const COUNT_DURATION = 1400;
+
+function CountUp({ to, suffix, run }) {
+  const [n, setN] = useState(0);
+
+  useEffect(() => {
+    if (!run) return;
+
+    // Reduced motion collapses the duration so the value lands on the first frame
+    const duration = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      ? 0
+      : COUNT_DURATION;
+
+    let frame;
+    let start = null;
+    const tick = now => {
+      if (start === null) start = now;
+      const t = duration === 0 ? 1 : Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - t, 4);
+      setN(Math.round(to * eased));
+      if (t < 1) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [run, to]);
+
+  return <>{n}{suffix}</>;
+}
 
 export default function About() {
   const ref = useRef(null);
+  const [revealed, setRevealed] = useState(false);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -17,6 +47,7 @@ export default function About() {
               el.style.transitionDelay = `${i * 0.08}s`;
               el.classList.add('visible');
             });
+            setRevealed(true);
             observer.unobserve(entry.target);
           }
         });
@@ -51,7 +82,7 @@ export default function About() {
           className="section-enter"
           style={{ marginBottom: '3.5rem' }}
         >
-          <span className="label">01 — About</span>
+          <span className="label">01 / About</span>
           <div
             style={{
               display: 'flex',
@@ -87,11 +118,10 @@ export default function About() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '1fr',
             gap: '3.5rem',
             alignItems: 'start',
           }}
-          className="md:grid-cols-[1fr_300px]"
+          className="grid-about"
         >
           {/* Prose */}
           <div
@@ -109,10 +139,10 @@ export default function About() {
               }}
             >
               I'm a Software Engineer with a Master's in Computer Science from{' '}
-              <span style={{ fontStyle: 'italic' }}>Boston University</span>,
-              specializing in data-centric computing. At Amazon Robotics I built
-              real-time computer vision systems that operate at scale across{' '}
-              hundreds of fulfillment centers worldwide.
+              <span style={{ fontStyle: 'italic' }}>Boston University</span>. My
+              focus is building AI agents and LLM-powered systems. At Amazon
+              Robotics I shipped real-time machine learning systems that operate
+              at scale across hundreds of fulfillment centers worldwide.
             </p>
             <p
               style={{
@@ -123,11 +153,11 @@ export default function About() {
                 margin: 0,
               }}
             >
-              I enjoy solving complex problems — from automating CI/CD pipelines
-              that cut release time by 90%, to building LLM-powered agents and
-              research tools in Unity and C#. I'm based in{' '}
-              <span style={{ color: 'var(--c-text)' }}>San Francisco</span> and
-              open to opportunities worldwide.
+              I enjoy solving complex problems, from designing agentic workflows
+              and LLM tooling, to automating CI/CD pipelines that cut release
+              time by 90% and building research tools in Unity and C#. I'm open
+              to opportunities{' '}
+              <span style={{ color: 'var(--c-text)' }}>anywhere in the US</span>.
             </p>
 
             {/* Spec tags */}
@@ -139,7 +169,7 @@ export default function About() {
                 marginTop: '0.5rem',
               }}
             >
-              {['Computer Vision', 'Machine Learning', 'Full-Stack', 'Real-Time Systems'].map(tag => (
+              {['AI Agents', 'LLM Systems', 'Machine Learning', 'Full-Stack'].map(tag => (
                 <span
                   key={tag}
                   style={{
@@ -172,6 +202,7 @@ export default function About() {
             {stats.map((stat, i) => (
               <div
                 key={stat.label}
+                className="stat-cell"
                 style={{
                   padding: '1.5rem',
                   borderBottom: i < stats.length - 1 ? '1px solid var(--c-border)' : 'none',
@@ -199,9 +230,10 @@ export default function About() {
                     color: 'var(--c-amber)',
                     lineHeight: 1,
                     marginBottom: '0.35rem',
+                    fontVariantNumeric: 'tabular-nums',
                   }}
                 >
-                  {stat.value}
+                  <CountUp to={stat.value} suffix={stat.suffix} run={revealed} />
                 </div>
                 <div
                   style={{

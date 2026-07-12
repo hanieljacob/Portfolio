@@ -51,7 +51,7 @@ export default function Skills() {
       <div style={{ maxWidth: '1120px', margin: '0 auto', padding: '0 1.5rem' }}>
         {/* Section header */}
         <div data-reveal className="section-enter" style={{ marginBottom: '3.5rem' }}>
-          <span className="label">03 — Capabilities</span>
+          <span className="label">03 / Capabilities</span>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '1rem', marginTop: '0.75rem' }}>
             <h2
               style={{
@@ -73,11 +73,10 @@ export default function Skills() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '1fr',
             gap: '0',
             border: '1px solid var(--c-border)',
           }}
-          className="md:grid-cols-3"
+          className="grid-skills"
         >
           {skillCategories.map((cat, ci) => (
             <div

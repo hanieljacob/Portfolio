@@ -6,7 +6,7 @@ export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(() => {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme) return savedTheme;
-    // Default to dark — it's the primary aesthetic
+    // Default to dark - it's the primary aesthetic
     return 'dark';
   });
 

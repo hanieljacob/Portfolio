@@ -47,10 +47,8 @@ function ProjectCard({ project, index }) {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          setTimeout(() => {
-            entry.target.style.opacity = '1';
-            entry.target.style.transform = 'translateY(0)';
-          }, index * 60);
+          entry.target.style.transitionDelay = `${index * 0.06}s`;
+          entry.target.classList.add('card-visible');
           observer.unobserve(entry.target);
         }
       },
@@ -60,14 +58,21 @@ function ProjectCard({ project, index }) {
     return () => observer.disconnect();
   }, [index]);
 
+  // Cursor-following spotlight, written straight to CSS vars to avoid re-renders
+  const onMouseMove = e => {
+    const el = ref.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    el.style.setProperty('--mx', `${e.clientX - rect.left}px`);
+    el.style.setProperty('--my', `${e.clientY - rect.top}px`);
+  };
+
   return (
     <div
       ref={ref}
       className="project-card"
+      onMouseMove={onMouseMove}
       style={{
-        opacity: 0,
-        transform: 'translateY(16px)',
-        transition: 'opacity 0.55s ease, transform 0.55s ease',
         padding: '1.75rem',
         display: 'flex',
         flexDirection: 'column',
@@ -75,6 +80,7 @@ function ProjectCard({ project, index }) {
         height: '100%',
       }}
     >
+      <div className="project-card-spotlight" aria-hidden="true" />
       {/* Header row */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
         <div style={{ flex: 1 }}>
@@ -277,7 +283,7 @@ export default function Projects() {
         {/* Header */}
         <div ref={headerRef} style={{ marginBottom: '3.5rem' }}>
           <div data-reveal className="section-enter">
-            <span className="label">02 — Work</span>
+            <span className="label">02 / Work</span>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '1rem', marginTop: '0.75rem' }}>
               <h2
                 style={{
@@ -381,9 +387,8 @@ export default function Projects() {
                 style={{
                   display: 'grid',
                   gap: '1.5px',
-                  gridTemplateColumns: '1fr',
                 }}
-                className="sm:grid-cols-2 lg:grid-cols-3"
+                className="grid-projects"
               >
                 {filteredProjects.map((project, i) => (
                   <ProjectCard key={project.title} project={project} index={i} />
