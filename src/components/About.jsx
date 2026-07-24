@@ -1,4 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { use3DEnabled } from './three/use3DEnabled';
+import { useActiveInView } from './three/useActiveInView';
+
+const Scene = lazy(() => import('./three/Scene'));
 
 const stats = [
   { value: 3,   suffix: '+', label: 'Years of Experience', sub: 'industry' },
@@ -37,6 +41,8 @@ function CountUp({ to, suffix, run }) {
 export default function About() {
   const ref = useRef(null);
   const [revealed, setRevealed] = useState(false);
+  const threeEnabled = use3DEnabled();
+  const threeActive = useActiveInView(ref);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -189,14 +195,43 @@ export default function About() {
           </div>
 
           {/* Stats */}
+          <div style={{ position: 'relative' }}>
+            {/* Subtle node-network accent behind the stats (subordinate to Hero) */}
+            {threeEnabled && (
+              <Suspense fallback={null}>
+                <div
+                  aria-hidden="true"
+                  style={{
+                    position: 'absolute',
+                    inset: '-18% -22%',
+                    zIndex: 0,
+                    pointerEvents: 'none',
+                    opacity: 0.55,
+                  }}
+                >
+                  <Scene
+                    active={threeActive}
+                    count={55}
+                    connectionDist={2.4}
+                    scale={0.7}
+                    opacity={0.8}
+                    parallax={false}
+                    camera={{ position: [0, 0, 12], fov: 55 }}
+                  />
+                </div>
+              </Suspense>
+            )}
           <div
             data-reveal
             className="section-enter"
             style={{
+              position: 'relative',
+              zIndex: 1,
               display: 'flex',
               flexDirection: 'column',
               gap: '0',
               border: '1px solid var(--c-border)',
+              background: 'var(--c-surface)',
             }}
           >
             {stats.map((stat, i) => (
@@ -257,6 +292,7 @@ export default function About() {
                 </div>
               </div>
             ))}
+          </div>
           </div>
         </div>
       </div>

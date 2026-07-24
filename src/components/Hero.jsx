@@ -1,4 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { lazy, Suspense, useEffect, useRef } from 'react';
+import { use3DEnabled } from './three/use3DEnabled';
+import { useActiveInView } from './three/useActiveInView';
+
+const Scene = lazy(() => import('./three/Scene'));
 
 const heroImage = new URL('/hero-photo.png', import.meta.url).href;
 
@@ -38,6 +42,8 @@ export default function Hero({ ready = true }) {
   const sectionRef = useRef(null);
   const projectsBtnRef = useMagnetic();
   const contactBtnRef = useMagnetic();
+  const threeEnabled = use3DEnabled();
+  const threeActive = useActiveInView(sectionRef);
 
   // Staggered entrance, held until the preloader hands off.
   // Applied synchronously rather than inside rAF: rAF is paused in background
@@ -120,6 +126,20 @@ export default function Hero({ ready = true }) {
       {/* Drifting amber glows */}
       <div aria-hidden="true" className="hero-glow hero-glow-a" />
       <div aria-hidden="true" className="hero-glow hero-glow-b" />
+
+      {/* Interactive neural-node constellation (3D). Mounts only after the
+          preloader hands off (`ready`) and when the device is capable —
+          otherwise the dot-grid + glows above are the graceful fallback. */}
+      {ready && threeEnabled && (
+        <Suspense fallback={null}>
+          <div
+            aria-hidden="true"
+            style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none' }}
+          >
+            <Scene active={threeActive} count={120} connectionDist={2.6} opacity={0.9} />
+          </div>
+        </Suspense>
+      )}
 
       <div
         ref={containerRef}
