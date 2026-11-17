@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#eef2f8"/>
+      <stop offset="1" stop-color="#dde5f1"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#0071e3"/>
+      <stop offset="1" stop-color="#7b61ff"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#bg)"/>
+  <circle cx="690" cy="70" r="180" fill="#ffffff" opacity="0.45"/>
+  <circle cx="90" cy="450" r="150" fill="#c8d7ee" opacity="0.35"/>
+
+  <rect x="150" y="62" width="500" height="376" rx="20" fill="#ffffff"/>
+  <rect x="150" y="62" width="500" height="6" rx="3" fill="url(#accent)"/>
+  <rect x="186" y="100" width="120" height="10" rx="5" fill="#1d1d1f" opacity="0.85"/>
+  <rect x="186" y="122" width="72" height="7" rx="3.5" fill="#8e8e93"/>
+
+  <rect x="186" y="164" width="428" height="1" fill="#e5e7eb"/>
+
+  <circle cx="200" cy="200" r="13" fill="url(#accent)" opacity="0.16"/>
+  <circle cx="200" cy="200" r="5" fill="#0071e3"/>
+  <rect x="226" y="188" width="150" height="9" rx="4.5" fill="#2c2c2e" opacity="0.8"/>
+  <rect x="226" y="206" width="330" height="7" rx="3.5" fill="#b8bec8"/>
+  <rect x="226" y="222" width="278" height="7" rx="3.5" fill="#b8bec8"/>
+
+  <circle cx="200" cy="274" r="13" fill="#7b61ff" opacity="0.14"/>
+  <circle cx="200" cy="274" r="5" fill="#7b61ff"/>
+  <rect x="226" y="262" width="122" height="9" rx="4.5" fill="#2c2c2e" opacity="0.8"/>
+  <rect x="226" y="280" width="350" height="7" rx="3.5" fill="#b8bec8"/>
+  <rect x="226" y="296" width="196" height="7" rx="3.5" fill="#b8bec8"/>
+
+  <circle cx="200" cy="348" r="13" fill="#e35fa0" opacity="0.12"/>
+  <circle cx="200" cy="348" r="5" fill="#e35fa0"/>
+  <rect x="226" y="336" width="168" height="9" rx="4.5" fill="#2c2c2e" opacity="0.8"/>
+  <rect x="226" y="354" width="310" height="7" rx="3.5" fill="#b8bec8"/>
+
+  <rect x="186" y="396" width="428" height="1" fill="#e5e7eb"/>
+  <rect x="186" y="414" width="94" height="8" rx="4" fill="url(#accent)" opacity="0.85"/>
+</svg>

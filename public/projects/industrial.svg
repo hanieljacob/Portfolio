@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0a141f"/>
+      <stop offset="1" stop-color="#122434"/>
+    </linearGradient>
+    <linearGradient id="area" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2dd4bf" stop-opacity="0.42"/>
+      <stop offset="1" stop-color="#2dd4bf" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="stroke" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#17a9c9"/>
+      <stop offset="1" stop-color="#5eead4"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#bg)"/>
+
+  <g stroke="#ffffff" stroke-opacity="0.07" stroke-width="1">
+    <path d="M64 96H744M64 172H744M64 248H744M64 324H744M64 400H744"/>
+  </g>
+  <g stroke="#ffffff" stroke-opacity="0.05" stroke-width="1">
+    <path d="M160 82V412M300 82V412M440 82V412M580 82V412M720 82V412"/>
+  </g>
+
+  <path d="M64 350 C 110 342, 138 300, 180 306 S 252 372, 300 330 S 372 236, 420 260 S 492 336, 540 286 S 620 178, 670 208 S 726 176, 744 158 L744 412 L64 412 Z" fill="url(#area)"/>
+  <path d="M64 350 C 110 342, 138 300, 180 306 S 252 372, 300 330 S 372 236, 420 260 S 492 336, 540 286 S 620 178, 670 208 S 726 176, 744 158" fill="none" stroke="url(#stroke)" stroke-width="3" stroke-linecap="round"/>
+
+  <g fill="#0a141f" stroke="#5eead4" stroke-width="2.5">
+    <circle cx="300" cy="330" r="5"/>
+    <circle cx="540" cy="286" r="5"/>
+    <circle cx="670" cy="208" r="5"/>
+  </g>
+
+  <rect x="56" y="44" width="120" height="8" rx="4" fill="#5eead4" opacity="0.9"/>
+  <rect x="56" y="64" width="196" height="7" rx="3.5" fill="#ffffff" opacity="0.3"/>
+
+  <g transform="translate(560,44)">
+    <rect width="184" height="62" rx="12" fill="#ffffff" opacity="0.05" stroke="#ffffff" stroke-opacity="0.1"/>
+    <rect x="16" y="16" width="58" height="6" rx="3" fill="#ffffff" opacity="0.35"/>
+    <rect x="16" y="32" width="82" height="13" rx="4" fill="#5eead4" opacity="0.85"/>
+    <circle cx="154" cy="31" r="12" fill="#2dd4bf" opacity="0.15"/>
+    <circle cx="154" cy="31" r="4" fill="#5eead4"/>
+  </g>
+</svg>

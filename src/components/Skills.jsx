@@ -1,211 +1,64 @@
-import { useEffect, useRef } from 'react';
+import { createElement, useRef } from 'react';
+import { Boxes, Code2, GraduationCap, Wrench } from 'lucide-react';
+import { useReveal } from '@/hooks/useReveal';
 
-const skillCategories = [
+const categories = [
   {
-    index: '01',
     title: 'Languages',
-    skills: ['Java', 'Python', 'TypeScript', 'JavaScript', 'Kotlin', 'SQL', 'HTML', 'CSS', 'C#'],
+    icon: Code2,
+    skills: ['Java', 'Python', 'TypeScript', 'JavaScript', 'Kotlin', 'SQL', 'C#'],
   },
   {
-    index: '02',
     title: 'Frameworks',
+    icon: Boxes,
     skills: ['React', 'Node.js', 'Express', 'Spring Boot', 'Django', 'Unity'],
   },
   {
-    index: '03',
-    title: 'Tools & Infra',
-    skills: ['AWS', 'PostgreSQL', 'MongoDB', 'Git', 'Docker', 'Auth0', 'Jenkins'],
+    title: 'Tools & Infrastructure',
+    icon: Wrench,
+    skills: ['AWS', 'PostgreSQL', 'MongoDB', 'Docker', 'Git', 'Jenkins', 'Auth0'],
   },
 ];
 
 export default function Skills() {
   const ref = useRef(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          entry.target.querySelectorAll('[data-reveal]').forEach((el, i) => {
-            el.style.transitionDelay = `${i * 0.09}s`;
-            el.classList.add('visible');
-          });
-          observer.unobserve(entry.target);
-        }
-      },
-      { threshold: 0.1 }
-    );
-    if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, []);
+  useReveal(ref);
 
   return (
-    <section
-      id="skills"
-      ref={ref}
-      style={{
-        padding: 'clamp(5rem, 10vw, 8rem) 0',
-        background: 'var(--c-surface)',
-        borderBottom: '1px solid var(--c-border)',
-      }}
-    >
-      <div style={{ maxWidth: '1120px', margin: '0 auto', padding: '0 1.5rem' }}>
-        {/* Section header */}
-        <div data-reveal className="section-enter" style={{ marginBottom: '3.5rem' }}>
-          <span className="label">03 / Capabilities</span>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '1rem', marginTop: '0.75rem' }}>
-            <h2
-              style={{
-                fontFamily: 'Syne, sans-serif',
-                fontWeight: 700,
-                fontSize: 'clamp(1.8rem, 4vw, 2.75rem)',
-                color: 'var(--c-text)',
-                margin: 0,
-                letterSpacing: '-0.02em',
-              }}
-            >
-              Skills & Tools
-            </h2>
-            <div style={{ flex: 1, height: '1px', background: 'var(--c-border)', maxWidth: '120px' }} />
-          </div>
+    <section className="section section--subtle" id="skills" ref={ref}>
+      <div className="container">
+        <div className="section-head" data-reveal>
+          <span className="eyebrow">Capabilities</span>
+          <h2 className="section-title">Tools of the trade.</h2>
         </div>
 
-        {/* Categories */}
-        <div
-          style={{
-            display: 'grid',
-            gap: '0',
-            border: '1px solid var(--c-border)',
-          }}
-          className="grid-skills"
-        >
-          {skillCategories.map((cat, ci) => (
-            <div
-              key={cat.title}
-              data-reveal
-              className="section-enter"
-              style={{
-                borderRight: ci < skillCategories.length - 1 ? '1px solid var(--c-border)' : 'none',
-                borderBottom: '0',
-                padding: '0',
-              }}
-              // On mobile, add a bottom border between categories
-            >
-              {/* Category header */}
-              <div
-                style={{
-                  padding: '1.25rem 1.75rem',
-                  borderBottom: '1px solid var(--c-border)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                }}
-              >
-                <span
-                  style={{
-                    display: 'inline-block',
-                    width: '6px',
-                    height: '6px',
-                    borderRadius: '50%',
-                    background: 'var(--c-amber)',
-                    flexShrink: 0,
-                  }}
-                />
-                <span
-                  className="label"
-                  style={{ color: 'var(--c-text)', fontSize: '0.68rem' }}
-                >
-                  {cat.title}
-                </span>
-                <span
-                  className="label"
-                  style={{ color: 'var(--c-text-ghost)', marginLeft: 'auto', fontSize: '0.58rem' }}
-                >
-                  {cat.index}
-                </span>
+        <div className="skill-grid">
+          {categories.map(({ title, icon, skills }) => (
+            <div className="skill-card" key={title} data-reveal>
+              <div className="skill-icon">
+                {createElement(icon, { size: 20, strokeWidth: 1.7 })}
               </div>
-
-              {/* Skills list */}
-              <div style={{ padding: '0.5rem 0' }}>
-                {cat.skills.map((skill) => (
-                  <div
-                    key={skill}
-                    className="skill-tag"
-                    style={{
-                      padding: '0.6rem 1.75rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                    }}
-                  >
-                    <span>{skill}</span>
-                    <span
-                      style={{
-                        display: 'inline-block',
-                        width: '4px',
-                        height: '4px',
-                        borderRadius: '50%',
-                        background: 'var(--c-text-ghost)',
-                        flexShrink: 0,
-                      }}
-                    />
-                  </div>
+              <h3>{title}</h3>
+              <ul className="skill-list">
+                {skills.map((skill) => (
+                  <li key={skill}>{skill}</li>
                 ))}
-              </div>
+              </ul>
             </div>
           ))}
         </div>
 
-        {/* Education callout */}
-        <div
-          data-reveal
-          className="section-enter"
-          style={{
-            marginTop: '2rem',
-            padding: '1.25rem 1.75rem',
-            border: '1px solid var(--c-border)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '1rem',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <span
-              style={{
-                width: '2px',
-                height: '2rem',
-                background: 'var(--c-amber)',
-                opacity: 0.6,
-                display: 'block',
-                flexShrink: 0,
-              }}
-            />
+        <div className="education" data-reveal>
+          <div className="education-main">
+            <GraduationCap size={24} strokeWidth={1.6} />
             <div>
-              <span
-                className="label"
-                style={{ color: 'var(--c-text-ghost)', display: 'block', marginBottom: '0.2rem' }}
-              >
-                Education
-              </span>
-              <span
-                style={{
-                  fontFamily: 'Source Serif 4, serif',
-                  fontSize: '0.95rem',
-                  color: 'var(--c-text)',
-                }}
-              >
-                M.S. Computer Science,{' '}
-                <span style={{ fontStyle: 'italic' }}>Boston University</span>
+              <span className="education-label">Education</span>
+              <span className="education-value">
+                M.S. Computer Science, Boston University
               </span>
             </div>
           </div>
-          <span
-            className="label"
-            style={{ color: 'var(--c-text-dim)', fontSize: '0.62rem' }}
-          >
-            Data-Centric Computing
-          </span>
+          <span className="education-note">Data Centric Computing</span>
         </div>
       </div>
     </section>

@@ -2,7 +2,7 @@
 //
 // The measurement ID is read from the VITE_GA_ID env var (e.g. "G-XXXXXXXXXX").
 // GA measurement IDs are public (they ship in the client bundle), so this is not
-// a secret — it lives in an env var so dev/localhost traffic isn't tracked and the
+// a secret, it lives in an env var so dev/localhost traffic isn't tracked and the
 // ID isn't hardcoded. If VITE_GA_ID is unset (e.g. local dev), this is a no-op.
 export function initAnalytics() {
   const measurementId = import.meta.env.VITE_GA_ID
